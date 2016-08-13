@@ -1,0 +1,3 @@
+[submodule "kawashima"]
+	path = kawashima
+	url = ./kawashima

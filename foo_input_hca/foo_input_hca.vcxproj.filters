@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="foo_input_hca">
+      <UniqueIdentifier>{b8a6fb7d-8eda-4d02-abbe-f871e5eb136c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>foo_input_hca</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>foo_input_hca</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>foo_input_hca</Filter>
+    </ClCompile>
+    <ClCompile Include="input_hca.cpp">
+      <Filter>foo_input_hca</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>foo_input_hca</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>foo_input_hca</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

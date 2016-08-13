@@ -1,0 +1,13 @@
+.vs/
+_Resharper*
+ipch/
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.VC.db
+*.VC.opendb
+*.cache
+*.user
+
+*.dll
