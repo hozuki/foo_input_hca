@@ -14,6 +14,8 @@ enum {
 #define CGSS_KEY_1 (0xf27e3b22)
 #define CGSS_KEY_2 (0x00003657)
 
+#define DEBUG_PLUGIN 0
+
 class input_hca {
 
 public:
@@ -23,7 +25,9 @@ public:
 		}
 		m_file = p_filehint;//p_filehint may be null, hence next line
 		input_open_file_helper(m_file, p_path, p_reason, p_abort);//if m_file is null, opens file with appropriate privileges for our operation (read/write for writing tags, read-only otherwise).
-		//fp = fopen("hcadec.log", "w");
+#if DEBUG_PLUGIN
+		fp = fopen("hcadec.log", "w");
+#endif
 	}
 
 	void get_info(file_info & p_info, abort_callback & p_abort) {
@@ -184,10 +188,12 @@ private:
 	uint32 m_data_buffer_size;
 	HCA_INFO m_hca_info;
 	bool m_info_retrieved = false;
+#if DEBUG_PLUGIN
 	FILE *fp = nullptr;
+#endif
 
 	void write_log(const char *format, ...) {
-#if 0
+#if DEBUG_PLUGIN
 		if (!fp) {
 			return;
 		}
@@ -200,8 +206,10 @@ private:
 	}
 
 	void cleanup_hca() {
+#if DEBUG_PLUGIN
 		fclose(fp);
 		fp = nullptr;
+#endif
 		if (m_decode && KsIsActiveHandle(m_decode)) {
 			KsEndDecode(m_decode);
 			KsCloseHandle(m_decode);
