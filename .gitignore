@@ -10,4 +10,6 @@ obj/
 *.cache
 *.user
 
+libcgss/proj/
+
 *.dll

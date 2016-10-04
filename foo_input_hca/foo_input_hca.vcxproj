@@ -44,8 +44,8 @@
     <ProjectReference Include="..\fb2k\pfc\pfc.vcxproj">
       <Project>{ebfffb4e-261d-44d3-b89c-957b31a0bf9c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\kawashima\kawashima.vcxproj">
-      <Project>{bb6f2ba1-844a-4fe8-9ef0-bb7bcd1c311a}</Project>
+    <ProjectReference Include="..\libcgss\proj\msvc\x86\cgss.vcxproj">
+      <Project>{5a3e9f99-1b55-3969-a060-6013ae2b9fe2}</Project>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">

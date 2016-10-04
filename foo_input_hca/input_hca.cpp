@@ -50,7 +50,7 @@ public:
 				write_log("#1");
 				auto read_size = m_file->read(buffer.get_ptr(), size, p_abort);
 				write_log("#2");
-				HKDECODE decode;
+				KS_DECODE_HANDLE decode;
 				KsOpenBuffer(buffer.get_ptr(), size, FALSE, &decode);
 				write_log("#3");
 				KsBeginDecode(decode);
@@ -184,7 +184,7 @@ public:
 private:
 	service_ptr_t<file> m_file;
 	pfc::array_t<t_uint8> m_buffer;
-	HKDECODE m_decode;
+	KS_DECODE_HANDLE m_decode;
 	uint32 m_data_buffer_size;
 	HCA_INFO m_hca_info;
 	bool m_info_retrieved = false;
