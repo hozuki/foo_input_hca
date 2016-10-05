@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 // Note: the skeleton is from 'foo_sample', apparently.
+#define _CRT_SECURE_NO_WARNINGS
 
 enum {
 	hca_bits_per_sample = 16,
@@ -14,7 +15,7 @@ enum {
 #define CGSS_KEY_1 (0xf27e3b22)
 #define CGSS_KEY_2 (0x00003657)
 
-#define DEBUG_PLUGIN 0
+#define DEBUG_PLUGIN (0)
 
 class input_hca {
 
@@ -26,7 +27,7 @@ public:
 		m_file = p_filehint;//p_filehint may be null, hence next line
 		input_open_file_helper(m_file, p_path, p_reason, p_abort);//if m_file is null, opens file with appropriate privileges for our operation (read/write for writing tags, read-only otherwise).
 #if DEBUG_PLUGIN
-		fp = fopen("hcadec.log", "w");
+		fp = fopen("hcadec.log", "a");
 #endif
 	}
 
@@ -47,39 +48,39 @@ public:
 				write_log("get_info called: new\n");
 				pfc::array_t<t_uint8> buffer;
 				buffer.set_size(size);
-				write_log("#1");
+				//write_log("#1");
 				auto read_size = m_file->read(buffer.get_ptr(), size, p_abort);
-				write_log("#2");
+				//write_log("#2");
 				KS_DECODE_HANDLE decode;
 				KsOpenBuffer(buffer.get_ptr(), size, FALSE, &decode);
-				write_log("#3");
+				//write_log("#3");
 				KsBeginDecode(decode);
-				write_log("#4");
+				//write_log("#4");
 				KsGetHcaInfo(decode, &m_hca_info);
-				write_log("#5");
+				//write_log("#5");
 				KsEndDecode(decode);
-				write_log("#6");
+				//write_log("#6");
 				KsCloseHandle(decode);
-				write_log("#7");
+				//write_log("#7");
 				decode = nullptr;
 
 				auto length_in_samples = m_hca_info.blockCount * m_hca_info.channelCount * 0x80 * 8;
 				auto length_in_seconds = (double)length_in_samples / m_hca_info.channelCount / m_hca_info.samplingRate;
-				write_log("#7.5");
+				//write_log("#7.5");
 				//file size is known, let's set length
 				//p_info.set_length(audio_math::samples_to_time(length_in_samples / m_hca_info.channelCount, m_hca_info.samplingRate));
 				p_info.set_length(length_in_seconds);
-				write_log("#8");
+				//write_log("#8");
 				p_info.info_set_int("samplerate", m_hca_info.samplingRate);
-				write_log("#9");
+				//write_log("#9");
 				p_info.info_set_int("channels", m_hca_info.channelCount);
-				write_log("#10");
+				//write_log("#10");
 				p_info.info_set_int("bitspersample", hca_bits_per_sample);
-				write_log("#11");
+				//write_log("#11");
 				p_info.info_set("encoding", "Lossy");
-				write_log("#12");
+				//write_log("#12");
 				p_info.info_set_bitrate((hca_bits_per_sample * hca_channels * hca_sample_rate + 500 /* rounding for bps to kbps*/) / 1000 /* bps to kbps */);
-				write_log("#13");
+				//write_log("#13");
 				m_info_retrieved = true;
 			} else {
 				write_log("get_info called: file invalid\n");
@@ -106,27 +107,52 @@ public:
 		KsSetParamI32(m_decode, KS_PARAM_KEY1, CGSS_KEY_1);
 		KsSetParamI32(m_decode, KS_PARAM_KEY2, CGSS_KEY_2);
 		KsBeginDecode(m_decode);
-		uint32 buffer_size;
-		KsGetWaveHeader(m_decode, nullptr, &buffer_size); // dummy
-		uint8 *b = new uint8[buffer_size];
-		KsGetWaveHeader(m_decode, b, &buffer_size);
-		delete[] b;
-		KsDecodeData(m_decode, nullptr, &m_data_buffer_size);
+		// v1.1
+		KsEnableExtension(m_decode, KS_EXTENSION_STREAMING, TRUE);
+		KsPrepareExtensions(m_decode);
+		uint32 wave_header_size;
+		KsGetWaveHeader(m_decode, nullptr, &wave_header_size); // dummy
+		//uint8 *b = new uint8[wave_header_size];
+		//KsGetWaveHeader(m_decode, b, &wave_header_size);
+		//delete[] b;
+		//KsDecodeData(m_decode, nullptr, &m_data_buffer_size);
+		KsExtStreamingSeek(m_decode, wave_header_size);
 	}
 
 	bool decode_run(audio_chunk & p_chunk, abort_callback & p_abort) {
+		try {
+			p_abort.check();
+		} catch (exception_aborted) {
+			cleanup_hca();
+			return false;
+		}
 		pfc::array_t<t_uint8> buffer;
-		const uint32 r = 10;
-		auto read_size = m_data_buffer_size * r;
-		buffer.set_size(read_size);
-		KS_RESULT result = KsDecodeData(m_decode, buffer.get_ptr(), &read_size);
+		//const uint32 r = 10;
+		//auto read_size = m_data_buffer_size * r;
+		//buffer.set_size(read_size);
+		//KS_RESULT result = KsDecodeData(m_decode, buffer.get_ptr(), &read_size);
+		//if (result <= 0 || read_size <= 0) {
+		//	cleanup_hca();
+		//	return false;
+		//}
+		//p_chunk.set_data_fixedpoint(buffer.get_ptr(), read_size, hca_sample_rate, hca_channels, hca_bits_per_sample, audio_chunk::g_guess_channel_config(hca_channels));
+		//
+		//if (read_size < m_data_buffer_size * r) {
+		//	cleanup_hca();
+		//	return false;
+		//}
+		const uint32 buffer_size = 10240;
+		buffer.set_size(buffer_size);
+		auto read_size = buffer_size;
+		write_log("preparing to decode\n");
+		KS_RESULT result = KsExtStreamingRead(m_decode, buffer.get_ptr(), buffer_size, &read_size);
+		write_log("read from stream, read_size=%u, result=%d\n", read_size, result);
 		if (result <= 0 || read_size <= 0) {
 			cleanup_hca();
 			return false;
 		}
 		p_chunk.set_data_fixedpoint(buffer.get_ptr(), read_size, hca_sample_rate, hca_channels, hca_bits_per_sample, audio_chunk::g_guess_channel_config(hca_channels));
-
-		if (read_size < m_data_buffer_size * r) {
+		if (read_size < buffer_size) {
 			cleanup_hca();
 			return false;
 		}
@@ -136,22 +162,35 @@ public:
 	}
 
 	void decode_seek(double p_seconds, abort_callback & p_abort) {
-		throw exception_io_object_not_seekable("kawashima does not support seeking right now.");
-
+		try {
+			p_abort.check();
+		} catch (exception_aborted) {
+			return;
+		}
 		m_file->ensure_seekable();//throw exceptions if someone called decode_seek() despite of our input having reported itself as nonseekable.
 								  // IMPORTANT: convert time to sample offset with proper rounding! audio_math::time_to_samples does this properly for you.
 		t_filesize target = audio_math::time_to_samples(p_seconds, hca_sample_rate) * hca_total_sample_width;
 
+		uint32 wave_size;
+		write_log("<seek> requested second: %lf\n", p_seconds);
+		write_log("<seek> getting wave size\n");
+		KsExtStreamingGetSize(m_decode, &wave_size);
+		write_log("<seek> result: %u\n", wave_size);
+		t_filesize max = wave_size;
 		// get_size_ex fails (throws exceptions) if size is not known (where get_size would return filesize_invalid). Should never fail on seekable streams (if it does it's not our problem anymore).
-		t_filesize max = m_file->get_size_ex(p_abort);
+		//t_filesize max = m_file->get_size_ex(p_abort);
 		if (target > max) target = max;//clip seek-past-eof attempts to legal range (next decode_run() call will just signal EOF).
 
-		m_file->seek(target, p_abort);
+		//m_file->seek(target, p_abort);
+		KsExtStreamingSeek(m_decode, (uint32)target);
+		write_log("<seek> sought\n");
 	}
 
 	bool decode_can_seek() const {
 		// kawashima does not support seeking right now
-		return false;
+		ubool streaming_enabled;
+		KsIsExtensionEnabled(m_decode, KS_EXTENSION_STREAMING, &streaming_enabled);
+		return streaming_enabled;
 	}
 
 	bool decode_get_dynamic_info(file_info & p_out, double & p_timestamp_delta) const {
@@ -206,8 +245,11 @@ private:
 	}
 
 	void cleanup_hca() {
+		write_log("HCA stream closed.");
 #if DEBUG_PLUGIN
-		fclose(fp);
+		if (fp) {
+			fclose(fp);
+		}
 		fp = nullptr;
 #endif
 		if (m_decode && KsIsActiveHandle(m_decode)) {
